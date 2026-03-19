@@ -1,0 +1,14 @@
+---
+layout: layouts/home.njk
+title: 首页
+permalink: /index.html
+---
+<h1>我的文章</h1>
+
+{% for post in collections.posts | reverse %}
+  <article class="card">
+    <h2><a href="{{ post.url | replace('/', '', 1) }}">{{ post.data.title }}</a></h2>
+    <p class="meta">{{ post.date.toISOString().slice(0, 10) }}</p>
+    <p>{{ post.data.description }}</p>
+  </article>
+{% endfor %}

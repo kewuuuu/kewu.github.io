@@ -1,0 +1,53 @@
+---
+layout: layouts/base.njk
+---
+<main class="page-main page-post">
+  {% set tocItems = content | extractToc(2, 4) %}
+  <div class="post-layout{% if tocItems and tocItems.length > 0 %} has-toc{% endif %}">
+    {% if tocItems and tocItems.length > 0 %}
+      <aside class="post-toc post-toc-left" aria-label="Article table of contents">
+        <h2 class="post-toc-title">目录</h2>
+        <nav class="post-toc-nav">
+          <ol class="post-toc-list">
+            {% for item in tocItems %}
+              <li class="post-toc-item post-toc-level-{{ item.level }} post-toc-depth-{{ item.depth }}" data-level="{{ item.level }}" data-depth="{{ item.depth }}">
+                <a href="#{{ item.id }}">{{ item.text | escape }}</a>
+              </li>
+            {% endfor %}
+          </ol>
+        </nav>
+      </aside>
+      <div class="post-splitter post-splitter-left" role="separator" aria-orientation="vertical" aria-label="Resize left sidebar">
+        <button class="post-splitter-toggle post-toggle-left" type="button" aria-expanded="true" aria-label="Collapse left sidebar">&lt;</button>
+      </div>
+    {% endif %}
+
+    <section class="post-main-stack">
+      {% if tocItems and tocItems.length > 0 %}
+        <aside class="post-toc post-toc-inline" aria-label="Article table of contents">
+          <h2 class="post-toc-title">目录</h2>
+          <nav class="post-toc-nav">
+            <ol class="post-toc-list">
+              {% for item in tocItems %}
+                <li class="post-toc-item post-toc-level-{{ item.level }} post-toc-depth-{{ item.depth }}" data-level="{{ item.level }}" data-depth="{{ item.depth }}">
+                  <a href="#{{ item.id }}">{{ item.text | escape }}</a>
+                </li>
+              {% endfor %}
+            </ol>
+          </nav>
+        </aside>
+      {% endif %}
+      <article class="post-article">
+        {{ content | safe }}
+      </article>
+    </section>
+
+    <div class="post-splitter post-splitter-right" role="separator" aria-orientation="vertical" aria-label="Resize right sidebar">
+      <button class="post-splitter-toggle post-toggle-right" type="button" aria-expanded="true" aria-label="Collapse right sidebar">&gt;</button>
+    </div>
+
+    <aside class="post-side" aria-label="Post extra panel">
+      <div class="post-side-inner"></div>
+    </aside>
+  </div>
+</main>

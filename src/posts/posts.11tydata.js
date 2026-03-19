@@ -1,0 +1,5 @@
+module.exports = {
+  layout: "layouts/post.njk",
+  tags: ["posts"],
+  permalink: "/posts/{{ page.fileSlug }}/index.html"
+};
