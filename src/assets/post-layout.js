@@ -336,6 +336,35 @@
     stateItems.push(item);
   }
 
+  function initContentTree(treeEl) {
+    if (!treeEl || treeEl.dataset.contentTreeBound === "1") {
+      return;
+    }
+
+    treeEl.dataset.contentTreeBound = "1";
+
+    var buttons = treeEl.querySelectorAll(".content-tree-toggle");
+    for (var i = 0; i < buttons.length; i += 1) {
+      buttons[i].addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        var buttonEl = event.currentTarget;
+        var itemEl = buttonEl.parentElement;
+        if (!itemEl) {
+          return;
+        }
+
+        var collapsed = itemEl.classList.toggle("is-collapsed");
+        buttonEl.setAttribute("aria-expanded", String(!collapsed));
+        buttonEl.setAttribute(
+          "aria-label",
+          collapsed ? "Expand children" : "Collapse children"
+        );
+      });
+    }
+  }
+
   function handleResize() {
     for (var i = 0; i < stateItems.length; i += 1) {
       updateGridTemplate(stateItems[i]);
@@ -347,6 +376,12 @@
     for (var i = 0; i < layouts.length; i += 1) {
       initLayout(layouts[i]);
     }
+
+    var contentTrees = document.querySelectorAll(".content-tree-panel");
+    for (var j = 0; j < contentTrees.length; j += 1) {
+      initContentTree(contentTrees[j]);
+    }
+
     window.addEventListener("resize", handleResize);
   }
 

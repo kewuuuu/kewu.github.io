@@ -1,6 +1,12 @@
 ---
 layout: layouts/base.njk
 ---
+{% set rootPrefix = page.url | pathToRoot %}
+{% set currentTreeNode = collections.postTree.byUrl[page.url] %}
+{% set currentPath = [] %}
+{% if currentTreeNode and currentTreeNode.path %}
+  {% set currentPath = currentTreeNode.path %}
+{% endif %}
 <main class="page-main page-post">
   {% set tocItems = content | extractToc(2, 4) %}
   <div class="post-layout{% if tocItems and tocItems.length > 0 %} has-toc{% endif %}">
@@ -38,6 +44,21 @@ layout: layouts/base.njk
         </aside>
       {% endif %}
       <article class="post-article">
+        {% if currentPath and currentPath.length > 0 %}
+          <nav class="post-context-path" aria-label="Post hierarchy">
+            <ol class="post-context-path-list">
+              {% for pathNode in currentPath %}
+                <li class="post-context-path-item post-context-path-item-{{ pathNode.kind }}">
+                  {% if pathNode.url and not loop.last %}
+                    <a href="{{ rootPrefix }}{{ pathNode.url | replace('/', '', 1) }}">{{ pathNode.title }}</a>
+                  {% else %}
+                    <span>{{ pathNode.title }}</span>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ol>
+          </nav>
+        {% endif %}
         {{ content | safe }}
       </article>
     </section>

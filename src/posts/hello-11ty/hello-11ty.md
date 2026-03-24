@@ -2,6 +2,8 @@
 title: 第一篇文章
 description: 这是一篇由 Markdown 自动生成的页面。
 date: 2026-03-16
+category: notes
+order: 10
 ---
 
 # 你好，11ty
@@ -24,4 +26,3 @@ date: 2026-03-16
 #### 5556
 
 ### 1234
-

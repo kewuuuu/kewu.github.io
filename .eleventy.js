@@ -1,3 +1,196 @@
+var postCategories = require("./src/_data/postCategories.json");
+
+function parseOrder(value, fallbackValue) {
+  var parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallbackValue;
+}
+
+function getItemFileSlug(item) {
+  if (item && item.page && item.page.fileSlug) {
+    return String(item.page.fileSlug);
+  }
+  if (item && item.fileSlug) {
+    return String(item.fileSlug);
+  }
+  return "";
+}
+
+function getPostId(item) {
+  var data = (item && item.data) || {};
+  var raw = data.postId || data.slug || getItemFileSlug(item);
+  return String(raw || "").trim();
+}
+
+function getPostParentId(item) {
+  var data = (item && item.data) || {};
+  return String(data.parent || "").trim();
+}
+
+function getPostCategoryId(item) {
+  var data = (item && item.data) || {};
+  return String(data.category || "").trim();
+}
+
+function createCategoryNode(definition) {
+  return {
+    uid: "category:" + String(definition.id),
+    id: String(definition.id),
+    kind: "category",
+    title: String(definition.title || definition.id),
+    description: String(definition.description || ""),
+    order: parseOrder(definition.order, 0),
+    url: "",
+    date: null,
+    categoryId: "",
+    parentId: "",
+    children: []
+  };
+}
+
+function createPostNode(item) {
+  var data = item.data || {};
+  var title = String(data.title || getItemFileSlug(item) || "Untitled");
+  return {
+    uid: "post:" + getPostId(item),
+    id: getPostId(item),
+    kind: "post",
+    title: title,
+    description: String(data.description || ""),
+    order: parseOrder(data.order, 0),
+    url: String(item.url || ""),
+    date: item.date instanceof Date ? item.date : new Date(item.date || 0),
+    categoryId: getPostCategoryId(item),
+    parentId: getPostParentId(item),
+    children: []
+  };
+}
+
+function compareTreeNodes(leftNode, rightNode) {
+  if (leftNode.kind !== rightNode.kind) {
+    return leftNode.kind === "category" ? -1 : 1;
+  }
+
+  if (leftNode.order !== rightNode.order) {
+    return leftNode.order - rightNode.order;
+  }
+
+  if (leftNode.kind === "post") {
+    var leftTime = leftNode.date instanceof Date ? leftNode.date.getTime() : 0;
+    var rightTime = rightNode.date instanceof Date ? rightNode.date.getTime() : 0;
+    if (leftTime !== rightTime) {
+      return rightTime - leftTime;
+    }
+  }
+
+  return leftNode.title.localeCompare(rightNode.title, "zh-CN");
+}
+
+function sortTree(nodes) {
+  nodes.sort(compareTreeNodes);
+  for (var i = 0; i < nodes.length; i += 1) {
+    sortTree(nodes[i].children);
+  }
+}
+
+function clonePathEntry(node) {
+  return {
+    uid: node.uid,
+    id: node.id,
+    kind: node.kind,
+    title: node.title,
+    url: node.url
+  };
+}
+
+function resolveParentNode(node, postNodeMap) {
+  if (!node.parentId) {
+    return null;
+  }
+
+  var seenIds = new Set([node.id]);
+  var currentId = node.parentId;
+
+  while (currentId) {
+    if (seenIds.has(currentId)) {
+      return null;
+    }
+    seenIds.add(currentId);
+
+    var currentNode = postNodeMap.get(currentId);
+    if (!currentNode) {
+      return null;
+    }
+    currentId = currentNode.parentId;
+  }
+
+  return postNodeMap.get(node.parentId) || null;
+}
+
+function annotateTree(nodes, path, byUrl) {
+  for (var i = 0; i < nodes.length; i += 1) {
+    var node = nodes[i];
+    var nextPath = path.concat([clonePathEntry(node)]);
+    if (node.url) {
+      byUrl[node.url] = {
+        node: node,
+        path: nextPath,
+        pathIds: nextPath.map(function (entry) {
+          return entry.uid;
+        })
+      };
+    }
+    annotateTree(node.children, nextPath, byUrl);
+  }
+}
+
+function buildPostTree(posts) {
+  var categoryDefinitions = Array.isArray(postCategories) ? postCategories : [];
+  var roots = [];
+  var byUrl = {};
+  var categoryNodeMap = new Map();
+  var postNodeMap = new Map();
+  var postNodes = [];
+
+  for (var i = 0; i < categoryDefinitions.length; i += 1) {
+    var categoryNode = createCategoryNode(categoryDefinitions[i]);
+    categoryNodeMap.set(categoryNode.id, categoryNode);
+    roots.push(categoryNode);
+  }
+
+  for (var j = 0; j < posts.length; j += 1) {
+    var postNode = createPostNode(posts[j]);
+    if (!postNode.id) {
+      continue;
+    }
+    postNodeMap.set(postNode.id, postNode);
+    postNodes.push(postNode);
+  }
+
+  for (var k = 0; k < postNodes.length; k += 1) {
+    var currentNode = postNodes[k];
+    var parentNode = resolveParentNode(currentNode, postNodeMap);
+    if (parentNode) {
+      parentNode.children.push(currentNode);
+      continue;
+    }
+
+    if (currentNode.categoryId && categoryNodeMap.has(currentNode.categoryId)) {
+      categoryNodeMap.get(currentNode.categoryId).children.push(currentNode);
+      continue;
+    }
+
+    roots.push(currentNode);
+  }
+
+  sortTree(roots);
+  annotateTree(roots, [], byUrl);
+
+  return {
+    roots: roots,
+    byUrl: byUrl
+  };
+}
+
 module.exports = function (eleventyConfig) {
   eleventyConfig.addFilter("pathToRoot", function (urlValue) {
     var normalizedUrl = String(urlValue || "/");
@@ -6,6 +199,17 @@ module.exports = function (eleventyConfig) {
       return "";
     }
     return "../".repeat(segments.length);
+  });
+
+  eleventyConfig.addFilter("includesValue", function (items, value) {
+    if (!Array.isArray(items)) {
+      return false;
+    }
+    return items.indexOf(value) !== -1;
+  });
+
+  eleventyConfig.addCollection("postTree", function (collectionApi) {
+    return buildPostTree(collectionApi.getFilteredByTag("posts"));
   });
 
   eleventyConfig.addFilter("extractToc", function (htmlContent, minLevel, maxLevel) {

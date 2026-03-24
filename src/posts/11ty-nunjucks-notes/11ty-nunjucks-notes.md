@@ -2,6 +2,9 @@
 title: Nunjucks 模板语法与 Eleventy(11ty) 使用笔记
 description: 结合当前项目结构，梳理 11ty 与 Nunjucks 的关系、集合机制和模板写法。
 date: 2026-03-16
+category: notes
+parent: hello-11ty
+order: 20
 templateEngineOverride: md
 ---
 

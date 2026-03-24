@@ -1,0 +1,41 @@
+{% macro render(nodes, currentUrl, currentPathIds, showMeta, rootPrefix) %}
+  {% if nodes and nodes.length > 0 %}
+    <ol class="content-tree-list">
+      {% for node in nodes %}
+        {% set hasChildren = node.children and node.children.length > 0 %}
+        {% set isCurrent = currentUrl and node.url and node.url == currentUrl %}
+        {% set isInPath = currentPathIds and (currentPathIds | includesValue(node.uid)) %}
+        <li class="content-tree-item content-tree-item-{{ node.kind }}{% if hasChildren %} has-children{% endif %}{% if isCurrent %} is-current{% endif %}{% if isInPath %} is-current-path{% endif %}">
+          {% if hasChildren %}
+            <button class="content-tree-toggle" type="button" aria-expanded="true" aria-label="Collapse children"></button>
+          {% else %}
+            <span class="content-tree-toggle-placeholder" aria-hidden="true"></span>
+          {% endif %}
+
+          <div class="content-tree-entry">
+            <div class="content-tree-title-row content-tree-title-row-{{ node.kind }}">
+              {% if node.url %}
+                <a class="content-tree-link" href="{{ rootPrefix }}{{ node.url | replace('/', '', 1) }}">{{ node.title }}</a>
+              {% else %}
+                <span class="content-tree-label">{{ node.title }}</span>
+              {% endif %}
+            </div>
+
+            {% if showMeta %}
+              {% if node.description %}
+                <p class="content-tree-description">{{ node.description }}</p>
+              {% endif %}
+              {% if node.kind == "post" and node.date %}
+                <p class="content-tree-meta">{{ node.date.toISOString().slice(0, 10) }}</p>
+              {% endif %}
+            {% endif %}
+          </div>
+
+          {% if hasChildren %}
+            {{ render(node.children, currentUrl, currentPathIds, showMeta, rootPrefix) }}
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  {% endif %}
+{% endmacro %}
