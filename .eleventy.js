@@ -1,4 +1,85 @@
-var postCategories = require("./src/_data/postCategories.json");
+var fs = require("node:fs");
+var path = require("node:path");
+
+var EXTERNAL_POSTS_ROOT = path.resolve(process.env.KEWU_POSTS_DIR || "D:/engine/GitHub/kewu-posts");
+var EXTERNAL_POSTS_DIR = path.join(EXTERNAL_POSTS_ROOT, "posts");
+var EXTERNAL_CATEGORIES_FILE = path.join(EXTERNAL_POSTS_ROOT, "postCategories.json");
+var LOCAL_POSTS_ROOT = path.join(__dirname, "src/posts");
+var LOCAL_SYNCED_DATA_DIR = path.join(__dirname, "src/_generated_data");
+var LOCAL_SYNCED_CATEGORIES_FILE = path.join(LOCAL_SYNCED_DATA_DIR, "postCategories.json");
+
+function ensureDir(dirPath) {
+  fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function clearDir(dirPath) {
+  fs.rmSync(dirPath, { recursive: true, force: true });
+  ensureDir(dirPath);
+}
+
+function clearDirChildrenExcept(dirPath, keepNames) {
+  ensureDir(dirPath);
+  var keepSet = new Set(keepNames || []);
+  var entries = fs.readdirSync(dirPath, { withFileTypes: true });
+
+  for (var i = 0; i < entries.length; i += 1) {
+    var entry = entries[i];
+    if (keepSet.has(entry.name)) {
+      continue;
+    }
+    fs.rmSync(path.join(dirPath, entry.name), { recursive: true, force: true });
+  }
+}
+
+function copyDirContents(sourceDir, targetDir) {
+  ensureDir(targetDir);
+  var entries = fs.readdirSync(sourceDir, { withFileTypes: true });
+
+  for (var i = 0; i < entries.length; i += 1) {
+    var entry = entries[i];
+    var sourcePath = path.join(sourceDir, entry.name);
+    var targetPath = path.join(targetDir, entry.name);
+
+    if (entry.isDirectory()) {
+      fs.cpSync(sourcePath, targetPath, { recursive: true });
+      continue;
+    }
+
+    if (entry.isFile()) {
+      fs.copyFileSync(sourcePath, targetPath);
+    }
+  }
+}
+
+function readJsonFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return [];
+  }
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+function syncExternalPostData() {
+  if (!fs.existsSync(EXTERNAL_POSTS_ROOT)) {
+    throw new Error("External posts repository not found: " + EXTERNAL_POSTS_ROOT);
+  }
+
+  if (!fs.existsSync(EXTERNAL_POSTS_DIR)) {
+    throw new Error("External posts directory not found: " + EXTERNAL_POSTS_DIR);
+  }
+
+  if (!fs.existsSync(EXTERNAL_CATEGORIES_FILE)) {
+    throw new Error("External categories file not found: " + EXTERNAL_CATEGORIES_FILE);
+  }
+
+  clearDirChildrenExcept(LOCAL_POSTS_ROOT, ["posts.11tydata.js"]);
+  clearDir(LOCAL_SYNCED_DATA_DIR);
+  copyDirContents(EXTERNAL_POSTS_DIR, LOCAL_POSTS_ROOT);
+  fs.copyFileSync(EXTERNAL_CATEGORIES_FILE, LOCAL_SYNCED_CATEGORIES_FILE);
+}
+
+syncExternalPostData();
+
+var postCategories = readJsonFile(LOCAL_SYNCED_CATEGORIES_FILE);
 
 function parseOrder(value, fallbackValue) {
   var parsed = Number.parseInt(value, 10);
@@ -192,6 +273,10 @@ function buildPostTree(posts) {
 }
 
 module.exports = function (eleventyConfig) {
+  eleventyConfig.setUseGitIgnore(false);
+  eleventyConfig.addWatchTarget(EXTERNAL_POSTS_DIR);
+  eleventyConfig.addWatchTarget(EXTERNAL_CATEGORIES_FILE);
+
   eleventyConfig.addFilter("pathToRoot", function (urlValue) {
     var normalizedUrl = String(urlValue || "/");
     var segments = normalizedUrl.split("/").filter(Boolean);

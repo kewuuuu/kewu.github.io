@@ -3,3 +3,6 @@ node_modules
 docs
 .cache
 .waylog
+src/_generated_data
+src/posts/*
+!src/posts/posts.11tydata.js
