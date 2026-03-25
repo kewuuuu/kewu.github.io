@@ -304,8 +304,6 @@ module.exports = function (eleventyConfig) {
     var headingPattern = /<h([1-6])\b([^>]*)>([\s\S]*?)<\/h\1>/gi;
     var items = [];
     var match;
-    var levelStack = [];
-
     function decodeHtml(rawText) {
       return String(rawText || "")
         .replace(/&lt;/g, "<")
@@ -333,17 +331,11 @@ module.exports = function (eleventyConfig) {
         continue;
       }
 
-      while (levelStack.length > 0 && level <= levelStack[levelStack.length - 1]) {
-        levelStack.pop();
-      }
-      var depth = levelStack.length;
-      levelStack.push(level);
-
       items.push({
         id: idMatch[1],
         text: plainText,
         level: level,
-        depth: depth
+        depth: level
       });
     }
 
@@ -360,16 +352,16 @@ module.exports = function (eleventyConfig) {
 
     for (var i = 0; i < items.length; i += 1) {
       var item = items[i];
-      var depth = Number.isFinite(Number(item.depth)) ? Number(item.depth) : 0;
+      var level = Number.isFinite(Number(item.level)) ? Number(item.level) : 1;
       var node = {
         id: item.id,
         text: item.text,
-        level: item.level,
-        depth: depth,
+        level: level,
+        depth: level,
         children: []
       };
 
-      while (stack.length > depth) {
+      while (stack.length > 0 && level <= stack[stack.length - 1].level) {
         stack.pop();
       }
 
