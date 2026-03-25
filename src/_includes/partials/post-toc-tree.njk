@@ -1,0 +1,19 @@
+{% macro render(items) %}
+  <ol class="post-toc-list">
+    {% for item in items %}
+      <li class="post-toc-item post-toc-level-{{ item.level }} post-toc-depth-{{ item.depth }}{% if item.children and item.children.length > 0 %} has-children{% endif %}">
+        <div class="post-toc-item-row">
+          {% if item.children and item.children.length > 0 %}
+            <button class="post-toc-toggle-btn" type="button" aria-expanded="true" aria-label="Collapse subheadings">▾</button>
+          {% else %}
+            <span class="post-toc-toggle-btn" aria-hidden="true">▸</span>
+          {% endif %}
+          <a class="post-toc-link" href="#{{ item.id }}">{{ item.text | escape }}</a>
+        </div>
+        {% if item.children and item.children.length > 0 %}
+          {{ render(item.children) }}
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+{% endmacro %}

@@ -350,6 +350,41 @@ module.exports = function (eleventyConfig) {
     return items;
   });
 
+  eleventyConfig.addFilter("tocTree", function (items) {
+    if (!Array.isArray(items) || items.length === 0) {
+      return [];
+    }
+
+    var roots = [];
+    var stack = [];
+
+    for (var i = 0; i < items.length; i += 1) {
+      var item = items[i];
+      var depth = Number.isFinite(Number(item.depth)) ? Number(item.depth) : 0;
+      var node = {
+        id: item.id,
+        text: item.text,
+        level: item.level,
+        depth: depth,
+        children: []
+      };
+
+      while (stack.length > depth) {
+        stack.pop();
+      }
+
+      if (stack.length === 0) {
+        roots.push(node);
+      } else {
+        stack[stack.length - 1].children.push(node);
+      }
+
+      stack.push(node);
+    }
+
+    return roots;
+  });
+
   eleventyConfig.amendLibrary("md", function (mdLib) {
     var ALIGNMENTS = new Set(["left", "center", "right"]);
     var MODES = new Set(["responsive", "fixed", "scale", "responsive-scale"]);

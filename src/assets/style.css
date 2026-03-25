@@ -176,21 +176,22 @@ body {
   line-height: 1.35;
 }
 
-.post-toc-item-hidden {
-  display: none;
-}
-
-.post-toc-item {
+.post-toc-item-row {
   display: flex;
   align-items: flex-start;
   gap: 4px;
 }
 
-.post-toc-item > a {
+.post-toc-link {
   min-width: 0;
   flex: 1;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.post-toc-item > .post-toc-list {
+  margin-top: 6px;
+  margin-left: 14px;
 }
 
 .post-toc-toggle-btn {
@@ -204,6 +205,14 @@ body {
   padding: 0;
   margin-top: 1px;
   flex: 0 0 auto;
+}
+
+.post-toc-item.is-collapsed > .post-toc-list {
+  display: none;
+}
+
+.post-toc-item.is-collapsed > .post-toc-item-row .post-toc-toggle-btn {
+  transform: none;
 }
 
 .post-toc-item:not(.has-children) .post-toc-toggle-btn {

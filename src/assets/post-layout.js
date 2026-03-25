@@ -209,106 +209,34 @@
     }
   }
 
-  function getTocItemDepth(itemEl) {
-    var raw = itemEl.getAttribute("data-depth");
-    var depth = Number.parseInt(raw || "0", 10);
-    return Number.isFinite(depth) ? depth : 0;
-  }
-
-  function refreshTocVisibility(tocListEl) {
-    var items = tocListEl.querySelectorAll(".post-toc-item");
-    var collapsedStack = [];
-
-    for (var i = 0; i < items.length; i += 1) {
-      var itemEl = items[i];
-      var depth = getTocItemDepth(itemEl);
-
-      while (collapsedStack.length > 0 && depth <= collapsedStack[collapsedStack.length - 1]) {
-        collapsedStack.pop();
-      }
-
-      var hidden = collapsedStack.length > 0;
-      itemEl.classList.toggle("post-toc-item-hidden", hidden);
-
-      if (!hidden && itemEl.getAttribute("data-collapsed") === "1") {
-        collapsedStack.push(depth);
-      }
-    }
-  }
-
   function enhanceTocTree(tocListEl) {
-    var items = Array.prototype.slice.call(tocListEl.querySelectorAll(".post-toc-item"));
-    if (items.length === 0) {
-      return;
-    }
-
-    for (var i = 0; i < items.length; i += 1) {
-      var currentItem = items[i];
-      var currentDepth = getTocItemDepth(currentItem);
-      currentItem.setAttribute("data-collapsed", "0");
-
-      var hasChildren = false;
-      for (var j = i + 1; j < items.length; j += 1) {
-        var nextDepth = getTocItemDepth(items[j]);
-        if (nextDepth <= currentDepth) {
-          break;
-        }
-        hasChildren = true;
-      }
-
-      var anchorEl = currentItem.querySelector("a");
-      if (anchorEl && !anchorEl.classList.contains("post-toc-link")) {
-        anchorEl.classList.add("post-toc-link");
-      }
-
-      if (!hasChildren) {
-        var placeholder = currentItem.querySelector(".post-toc-toggle-btn");
-        if (!placeholder) {
-          placeholder = document.createElement("span");
-          placeholder.className = "post-toc-toggle-btn";
-          placeholder.setAttribute("aria-hidden", "true");
-          placeholder.textContent = "▸";
-          currentItem.insertBefore(placeholder, currentItem.firstChild);
-        }
+    var buttons = tocListEl.querySelectorAll(".post-toc-item.has-children > .post-toc-item-row > .post-toc-toggle-btn");
+    for (var i = 0; i < buttons.length; i += 1) {
+      var button = buttons[i];
+      if (button.dataset.bound === "1") {
         continue;
       }
 
-      currentItem.classList.add("has-children");
-      var existingButton = currentItem.querySelector(".post-toc-toggle-btn");
-      if (existingButton) {
-        continue;
-      }
-
-      var toggleButton = document.createElement("button");
-      toggleButton.type = "button";
-      toggleButton.className = "post-toc-toggle-btn";
-      toggleButton.setAttribute("aria-expanded", "true");
-      toggleButton.setAttribute("aria-label", "Collapse subheadings");
-      toggleButton.textContent = "▾";
-
-      toggleButton.addEventListener("click", function (event) {
+      button.dataset.bound = "1";
+      button.addEventListener("click", function (event) {
         event.preventDefault();
         event.stopPropagation();
-        var buttonEl = event.currentTarget;
-        var itemEl = buttonEl.parentElement;
-        var collapsed = itemEl.getAttribute("data-collapsed") === "1";
-        var nextCollapsed = !collapsed;
 
-        itemEl.setAttribute("data-collapsed", nextCollapsed ? "1" : "0");
-        buttonEl.setAttribute("aria-expanded", String(!nextCollapsed));
+        var buttonEl = event.currentTarget;
+        var itemEl = buttonEl.closest(".post-toc-item");
+        if (!itemEl) {
+          return;
+        }
+
+        var collapsed = itemEl.classList.toggle("is-collapsed");
+        buttonEl.setAttribute("aria-expanded", String(!collapsed));
         buttonEl.setAttribute(
           "aria-label",
-          nextCollapsed ? "Expand subheadings" : "Collapse subheadings"
+          collapsed ? "Expand subheadings" : "Collapse subheadings"
         );
-        buttonEl.textContent = nextCollapsed ? "▸" : "▾";
-
-        refreshTocVisibility(tocListEl);
+        buttonEl.textContent = collapsed ? "▸" : "▾";
       });
-
-      currentItem.insertBefore(toggleButton, currentItem.firstChild);
     }
-
-    refreshTocVisibility(tocListEl);
   }
 
   function initLayout(layoutEl) {

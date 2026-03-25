@@ -1,6 +1,7 @@
 ---
 layout: layouts/base.njk
 ---
+{% from "partials/post-toc-tree.njk" import render as renderTocTree %}
 {% set rootPrefix = page.url | pathToRoot %}
 {% set currentTreeNode = collections.postTree.byUrl[page.url] %}
 {% set currentPath = [] %}
@@ -9,18 +10,13 @@ layout: layouts/base.njk
 {% endif %}
 <main class="page-main page-post">
   {% set tocItems = content | extractToc(1, 4) %}
+  {% set tocTree = tocItems | tocTree %}
   <div class="post-layout{% if tocItems and tocItems.length > 0 %} has-toc{% endif %}">
     {% if tocItems and tocItems.length > 0 %}
       <aside class="post-toc post-toc-left" aria-label="Article table of contents">
         <h2 class="post-toc-title">目录</h2>
         <nav class="post-toc-nav">
-          <ol class="post-toc-list">
-            {% for item in tocItems %}
-              <li class="post-toc-item post-toc-level-{{ item.level }} post-toc-depth-{{ item.depth }}" data-level="{{ item.level }}" data-depth="{{ item.depth }}">
-                <a href="#{{ item.id }}">{{ item.text | escape }}</a>
-              </li>
-            {% endfor %}
-          </ol>
+          {{ renderTocTree(tocTree) }}
         </nav>
       </aside>
       <div class="post-splitter post-splitter-left" role="separator" aria-orientation="vertical" aria-label="Resize left sidebar">
@@ -33,13 +29,7 @@ layout: layouts/base.njk
         <aside class="post-toc post-toc-inline" aria-label="Article table of contents">
           <h2 class="post-toc-title">目录</h2>
           <nav class="post-toc-nav">
-            <ol class="post-toc-list">
-              {% for item in tocItems %}
-                <li class="post-toc-item post-toc-level-{{ item.level }} post-toc-depth-{{ item.depth }}" data-level="{{ item.level }}" data-depth="{{ item.depth }}">
-                  <a href="#{{ item.id }}">{{ item.text | escape }}</a>
-                </li>
-              {% endfor %}
-            </ol>
+            {{ renderTocTree(tocTree) }}
           </nav>
         </aside>
       {% endif %}
