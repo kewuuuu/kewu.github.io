@@ -209,10 +209,10 @@
     }
   }
 
-  function getTocItemLevel(itemEl) {
-    var raw = itemEl.getAttribute("data-level");
-    var level = Number.parseInt(raw || "0", 10);
-    return Number.isFinite(level) ? level : 0;
+  function getTocItemDepth(itemEl) {
+    var raw = itemEl.getAttribute("data-depth");
+    var depth = Number.parseInt(raw || "0", 10);
+    return Number.isFinite(depth) ? depth : 0;
   }
 
   function refreshTocVisibility(tocListEl) {
@@ -221,9 +221,9 @@
 
     for (var i = 0; i < items.length; i += 1) {
       var itemEl = items[i];
-      var level = getTocItemLevel(itemEl);
+      var depth = getTocItemDepth(itemEl);
 
-      while (collapsedStack.length > 0 && level <= collapsedStack[collapsedStack.length - 1]) {
+      while (collapsedStack.length > 0 && depth <= collapsedStack[collapsedStack.length - 1]) {
         collapsedStack.pop();
       }
 
@@ -231,7 +231,7 @@
       itemEl.classList.toggle("post-toc-item-hidden", hidden);
 
       if (!hidden && itemEl.getAttribute("data-collapsed") === "1") {
-        collapsedStack.push(level);
+        collapsedStack.push(depth);
       }
     }
   }
@@ -244,13 +244,13 @@
 
     for (var i = 0; i < items.length; i += 1) {
       var currentItem = items[i];
-      var currentLevel = getTocItemLevel(currentItem);
+      var currentDepth = getTocItemDepth(currentItem);
       currentItem.setAttribute("data-collapsed", "0");
 
       var hasChildren = false;
       for (var j = i + 1; j < items.length; j += 1) {
-        var nextLevel = getTocItemLevel(items[j]);
-        if (nextLevel <= currentLevel) {
+        var nextDepth = getTocItemDepth(items[j]);
+        if (nextDepth <= currentDepth) {
           break;
         }
         hasChildren = true;
