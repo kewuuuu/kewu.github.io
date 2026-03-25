@@ -469,6 +469,24 @@ body.post-resizing * {
   word-break: break-word;
 }
 
+.post-header {
+  margin-bottom: 24px;
+}
+
+.post-title {
+  margin: 0;
+  font-size: 32px;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+.post-description {
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #57606a;
+}
+
 .content-tree-label {
   color: #1f2328;
 }

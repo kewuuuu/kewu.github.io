@@ -8,7 +8,7 @@ layout: layouts/base.njk
   {% set currentPath = currentTreeNode.path %}
 {% endif %}
 <main class="page-main page-post">
-  {% set tocItems = content | extractToc(2, 4) %}
+  {% set tocItems = content | extractToc(1, 4) %}
   <div class="post-layout{% if tocItems and tocItems.length > 0 %} has-toc{% endif %}">
     {% if tocItems and tocItems.length > 0 %}
       <aside class="post-toc post-toc-left" aria-label="Article table of contents">
@@ -58,6 +58,16 @@ layout: layouts/base.njk
               {% endfor %}
             </ol>
           </nav>
+        {% endif %}
+        {% if title or description %}
+          <header class="post-header">
+            {% if title %}
+              <h1 class="post-title">{{ title }}</h1>
+            {% endif %}
+            {% if description %}
+              <p class="post-description">{{ description }}</p>
+            {% endif %}
+          </header>
         {% endif %}
         {{ content | safe }}
       </article>
