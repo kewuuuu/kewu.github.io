@@ -553,6 +553,71 @@ body.post-resizing * {
   color: #5a8fce;
 }
 
+/* 阅读器控制栏 */
+.reader-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+}
+
+.reader-control-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #24292f;
+  background: #ffffff;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.reader-control-btn:hover {
+  background: #f3f4f6;
+  border-color: #bbbfc3;
+}
+
+.reader-control-btn:active {
+  background: #ebecf0;
+}
+
+/* 文章阅读字体和行距变量 */
+.post-article {
+  --post-font-size: 16px;
+  --post-line-height: 1.8;
+}
+
+.post-article p,
+.post-article li,
+.post-article blockquote,
+.post-article td,
+.post-article th {
+  font-size: var(--post-font-size);
+  line-height: var(--post-line-height);
+}
+
+.post-article h1 {
+  font-size: calc(var(--post-font-size) * 2);
+}
+
+.post-article h2 {
+  font-size: calc(var(--post-font-size) * 1.5);
+}
+
+.post-article h3 {
+  font-size: calc(var(--post-font-size) * 1.25);
+}
+
+.post-article h4,
+.post-article h5,
+.post-article h6 {
+  font-size: var(--post-font-size);
+}
+
 .code-module-header {
   display: flex;
   align-items: center;
