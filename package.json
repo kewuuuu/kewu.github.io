@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "scripts": {
     "prebuild": "node -e \"require('fs').rmSync('docs',{ recursive: true, force: true })\"",
-    "dev": "npx @11ty/eleventy --serve",
-    "build": "npx @11ty/eleventy"
+    "dev": "npx @11ty/eleventy --config=eleventy.config.js --serve",
+    "build": "npx @11ty/eleventy --config=eleventy.config.js"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.1.2"
