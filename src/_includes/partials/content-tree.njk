@@ -5,6 +5,10 @@
         {% set hasChildren = node.children and node.children.length > 0 %}
         {% set isCurrent = currentUrl and node.url and node.url == currentUrl %}
         {% set isInPath = currentPathIds and (currentPathIds | includesValue(node.uid)) %}
+        {% set iconFile = "post-note.svg" %}
+        {% if node.kind == "category" %}
+          {% set iconFile = "category-folder.svg" %}
+        {% endif %}
         <li class="content-tree-item content-tree-item-{{ node.kind }}{% if hasChildren %} has-children{% endif %}{% if isCurrent %} is-current{% endif %}{% if isInPath %} is-current-path{% endif %}">
           {% if hasChildren %}
             <button class="content-tree-toggle" type="button" aria-expanded="true" aria-label="Collapse children"></button>
@@ -14,6 +18,9 @@
 
           <div class="content-tree-entry">
             <div class="content-tree-title-row content-tree-title-row-{{ node.kind }}">
+              <span class="content-tree-kind-icon" aria-hidden="true">
+                <img src="{{ rootPrefix }}assets/icons/{{ iconFile }}" alt="" width="16" height="16">
+              </span>
               {% if node.url %}
                 <a class="content-tree-link" href="{{ rootPrefix }}{{ node.url | replace('/', '', 1) }}">{{ node.title }}</a>
               {% else %}

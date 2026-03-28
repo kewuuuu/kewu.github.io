@@ -1,12 +1,26 @@
 ---
 layout: layouts/home.njk
-title: 首页
+title: Home
 permalink: /index.html
 ---
 {% import "partials/content-tree.njk" as contentTree %}
 {% set rootPrefix = page.url | pathToRoot %}
 
-<section class="content-tree-panel content-tree-panel-home">
-  <h1 class="content-tree-heading">博客</h1>
+<section class="home-hero" aria-labelledby="home-title">
+  <div class="home-hero-copy">
+    <p class="home-hero-kicker">Kewu Knowledge Base</p>
+    <h1 class="home-hero-title" id="home-title">Kewu Blog</h1>
+    <p class="home-hero-description">Organized long-form writing with nested topics and readable navigation.</p>
+    <a class="home-hero-cta" href="#article-tree">Browse Articles</a>
+  </div>
+  <div class="home-hero-art" aria-hidden="true">
+    <img class="home-hero-art-main" src="{{ rootPrefix }}assets/icons/brand-orbit.svg" alt="" width="132" height="132">
+    <img class="home-hero-art-chip home-hero-art-chip-folder" src="{{ rootPrefix }}assets/icons/category-folder.svg" alt="" width="34" height="34">
+    <img class="home-hero-art-chip home-hero-art-chip-post" src="{{ rootPrefix }}assets/icons/post-note.svg" alt="" width="34" height="34">
+  </div>
+</section>
+
+<section class="content-tree-panel content-tree-panel-home" id="article-tree" aria-label="Article tree">
+  <h2 class="content-tree-heading">Article Tree</h2>
   {{ contentTree.render(collections.postTree.roots, page.url, [], true, rootPrefix) }}
 </section>

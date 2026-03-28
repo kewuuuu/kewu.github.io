@@ -15,8 +15,13 @@
 </head>
 <body>
   <header class="site-header">
+    <div class="site-header-glow" aria-hidden="true"></div>
     <div class="site-header-inner">
-      <a class="site-brand" href="/">Kewu Blog</a>
+      <a class="site-brand" href="{{ rootPrefix }}index.html" aria-label="Go to homepage">
+        <img class="site-brand-icon" src="{{ rootPrefix }}assets/icons/brand-orbit.svg" alt="" width="34" height="34">
+        <span class="site-brand-text">Kewu Blog</span>
+      </a>
+      <p class="site-tagline">Writing, notes, and structured ideas.</p>
     </div>
   </header>
   {{ content | safe }}
