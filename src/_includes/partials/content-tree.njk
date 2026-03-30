@@ -9,7 +9,13 @@
         {% if node.kind == "category" %}
           {% set iconFile = "category-folder.svg" %}
         {% endif %}
-        <li class="content-tree-item content-tree-item-{{ node.kind }}{% if hasChildren %} has-children{% endif %}{% if isCurrent %} is-current{% endif %}{% if isInPath %} is-current-path{% endif %}">
+        <li
+          class="content-tree-item content-tree-item-{{ node.kind }}{% if hasChildren %} has-children{% endif %}{% if isCurrent %} is-current{% endif %}{% if isInPath %} is-current-path{% endif %}"
+          data-node-kind="{{ node.kind }}"
+          data-node-title="{{ node.title | escape }}"
+          data-node-order="{{ node.order }}"
+          {% if node.date %}data-node-date="{{ node.date.toISOString() }}"{% endif %}
+        >
           {% if hasChildren %}
             <button class="content-tree-toggle" type="button" aria-expanded="true" aria-label="Collapse children"></button>
           {% else %}

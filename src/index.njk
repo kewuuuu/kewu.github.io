@@ -6,21 +6,14 @@ permalink: /index.html
 {% import "partials/content-tree.njk" as contentTree %}
 {% set rootPrefix = page.url | pathToRoot %}
 
-<section class="home-hero" aria-labelledby="home-title">
-  <div class="home-hero-copy">
-    <p class="home-hero-kicker">Kewu Knowledge Base</p>
-    <h1 class="home-hero-title" id="home-title">Kewu Blog</h1>
-    <p class="home-hero-description">Organized long-form writing with nested topics and readable navigation.</p>
-    <a class="home-hero-cta" href="#article-tree">Browse Articles</a>
-  </div>
-  <div class="home-hero-art" aria-hidden="true">
-    <img class="home-hero-art-main" src="{{ rootPrefix }}assets/icons/brand-orbit.svg" alt="" width="132" height="132">
-    <img class="home-hero-art-chip home-hero-art-chip-folder" src="{{ rootPrefix }}assets/icons/category-folder.svg" alt="" width="34" height="34">
-    <img class="home-hero-art-chip home-hero-art-chip-post" src="{{ rootPrefix }}assets/icons/post-note.svg" alt="" width="34" height="34">
-  </div>
-</section>
-
 <section class="content-tree-panel content-tree-panel-home" id="article-tree" aria-label="Article tree">
-  <h2 class="content-tree-heading">Article Tree</h2>
+  <div class="content-tree-heading-row">
+    <h2 class="content-tree-heading">文章</h2>
+    <div class="content-tree-toolbar" role="toolbar" aria-label="显示和排序设置">
+      <button class="content-tree-toolbar-btn is-active" type="button" data-tree-action="toggle-view" data-tooltip="树形显示" aria-label="树形显示" aria-pressed="true">◫</button>
+      <button class="content-tree-toolbar-btn" type="button" data-tree-action="toggle-sort-field" data-tooltip="按标题排序" aria-label="按标题排序" aria-pressed="false">A</button>
+      <button class="content-tree-toolbar-btn" type="button" data-tree-action="toggle-sort-direction" data-tooltip="正序" aria-label="正序" aria-pressed="false">↑</button>
+    </div>
+  </div>
   {{ contentTree.render(collections.postTree.roots, page.url, [], true, rootPrefix) }}
 </section>

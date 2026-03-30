@@ -3,7 +3,12 @@
 
   var COLUMN_KEY_PREFIX = "kewu:columns:";
   var COLUMN_MIN_WIDTH = 160;
+  var HOVER_HIDE_DELAY = 170;
+  var HOVER_GAP = 10;
+  var HOVER_VIEWPORT_PADDING = 8;
   var resizeItems = [];
+  var hashBindingsReady = false;
+  var hoverController = null;
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -75,7 +80,35 @@
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 14;
   }
 
+  function getNodesInScope(rootEl, selector) {
+    var nodes = [];
+    if (!rootEl || !selector) {
+      return nodes;
+    }
+
+    if (rootEl.nodeType === 1 && rootEl.matches && rootEl.matches(selector)) {
+      nodes.push(rootEl);
+    }
+
+    var found = rootEl.querySelectorAll ? rootEl.querySelectorAll(selector) : [];
+    for (var i = 0; i < found.length; i += 1) {
+      nodes.push(found[i]);
+    }
+
+    return nodes;
+  }
+
+  function pruneResizeItems() {
+    resizeItems = resizeItems.filter(function (item) {
+      return item && item.containerEl && item.containerEl.isConnected;
+    });
+  }
+
   function applyColumnTemplate(item) {
+    if (!item || !item.containerEl || !item.containerEl.isConnected) {
+      return;
+    }
+
     if (isCompactViewport()) {
       item.containerEl.style.gridTemplateColumns = "";
       return;
@@ -139,10 +172,20 @@
     }
   }
 
-  function initColumns() {
-    var containers = document.querySelectorAll(".md-columns[data-columns-default]");
+  function initColumns(rootEl) {
+    pruneResizeItems();
+
+    var scope = rootEl || document;
+    var containers = getNodesInScope(scope, ".md-columns[data-columns-default]");
     for (var i = 0; i < containers.length; i += 1) {
       var containerEl = containers[i];
+      if (containerEl.closest(".md-hover-card-def")) {
+        continue;
+      }
+      if (containerEl.dataset.columnsBound === "1") {
+        continue;
+      }
+
       var columnEls = containerEl.querySelectorAll(":scope > .md-columns__column");
       var splitterEls = containerEl.querySelectorAll(":scope > .md-columns__splitter");
       if (columnEls.length < 2) {
@@ -158,6 +201,7 @@
         ratios: normalizeRatios(ratios)
       };
 
+      containerEl.dataset.columnsBound = "1";
       bindColumnSplitters(item);
       applyColumnTemplate(item);
       resizeItems.push(item);
@@ -186,10 +230,17 @@
     flashTarget(targetEl);
   }
 
-  function bindXrefs() {
-    var xrefs = document.querySelectorAll(".md-xref[href^='#']");
+  function bindXrefsInRoot(rootEl) {
+    var scope = rootEl || document;
+    var xrefs = getNodesInScope(scope, ".md-xref[href^='#']");
     for (var i = 0; i < xrefs.length; i += 1) {
-      xrefs[i].addEventListener("click", function (event) {
+      var xrefEl = xrefs[i];
+      if (xrefEl.dataset.xrefBound === "1") {
+        continue;
+      }
+
+      xrefEl.dataset.xrefBound = "1";
+      xrefEl.addEventListener("click", function (event) {
         var href = event.currentTarget.getAttribute("href") || "";
         if (!href.startsWith("#")) {
           return;
@@ -202,20 +253,390 @@
         }
       });
     }
+  }
 
-    window.addEventListener("hashchange", highlightHashTarget);
-    highlightHashTarget();
+  function bindXrefs(rootEl) {
+    bindXrefsInRoot(rootEl || document);
+
+    if (!hashBindingsReady) {
+      window.addEventListener("hashchange", highlightHashTarget);
+      hashBindingsReady = true;
+      highlightHashTarget();
+    }
+  }
+
+  function createHoverController() {
+    var definitions = Object.create(null);
+    var hideTimer = 0;
+    var holdByPointer = false;
+    var activeTermEl = null;
+    var popupEl = document.createElement("aside");
+    popupEl.className = "md-hover-popup";
+    popupEl.setAttribute("aria-hidden", "true");
+    popupEl.innerHTML = '<div class="md-hover-popup__arrow" aria-hidden="true"></div><div class="md-hover-popup__inner"></div>';
+    document.body.appendChild(popupEl);
+    var popupInnerEl = popupEl.querySelector(".md-hover-popup__inner");
+
+    function clearHideTimer() {
+      if (hideTimer) {
+        window.clearTimeout(hideTimer);
+        hideTimer = 0;
+      }
+    }
+
+    function setTermActive(termEl, isActive) {
+      if (!termEl) {
+        return;
+      }
+      termEl.classList.toggle("is-hover-active", isActive);
+      termEl.setAttribute("aria-expanded", isActive ? "true" : "false");
+    }
+
+    function hideNow() {
+      clearHideTimer();
+      if (activeTermEl) {
+        setTermActive(activeTermEl, false);
+        activeTermEl = null;
+      }
+      popupEl.classList.remove("is-open", "is-above", "is-below");
+      popupEl.setAttribute("aria-hidden", "true");
+    }
+
+    function shouldHoldOpen() {
+      return holdByPointer || document.body.classList.contains("md-columns-resizing");
+    }
+
+    function scheduleHide(delay) {
+      clearHideTimer();
+      hideTimer = window.setTimeout(function () {
+        if (shouldHoldOpen()) {
+          scheduleHide(HOVER_HIDE_DELAY);
+          return;
+        }
+        hideNow();
+      }, Number.isFinite(delay) ? delay : HOVER_HIDE_DELAY);
+    }
+
+    function resolveDefinition(id) {
+      if (!id) {
+        return null;
+      }
+      if (definitions[id] && definitions[id].isConnected) {
+        return definitions[id];
+      }
+      var selector = '.md-hover-card-def[data-hover-id="' + id + '"]';
+      var found = document.querySelector(selector);
+      if (found) {
+        definitions[id] = found;
+      }
+      return found || null;
+    }
+
+    function cloneChildren(sourceEl, targetEl) {
+      if (!sourceEl || !targetEl) {
+        return;
+      }
+      for (var i = 0; i < sourceEl.childNodes.length; i += 1) {
+        targetEl.appendChild(sourceEl.childNodes[i].cloneNode(true));
+      }
+    }
+
+    function applyPopupSize(definitionEl) {
+      popupEl.style.width = "";
+      popupEl.style.maxWidth = "";
+
+      var customWidth = definitionEl && definitionEl.style
+        ? String(definitionEl.style.getPropertyValue("--md-hover-width") || "").trim()
+        : "";
+      var customMaxWidth = definitionEl && definitionEl.style
+        ? String(definitionEl.style.getPropertyValue("--md-hover-max-width") || "").trim()
+        : "";
+
+      if (customWidth) {
+        popupEl.style.width = customWidth;
+      }
+      popupEl.style.maxWidth = customMaxWidth || "min(460px, calc(100vw - 16px))";
+    }
+
+    function setPopupContent(definitionEl) {
+      popupInnerEl.innerHTML = "";
+
+      var titleSource = definitionEl.querySelector(":scope > .md-hover-card-def__title");
+      if (titleSource) {
+        var titleEl = titleSource.cloneNode(true);
+        titleEl.classList.add("md-hover-popup__title");
+        popupInnerEl.appendChild(titleEl);
+      }
+
+      var bodyEl = document.createElement("div");
+      bodyEl.className = "md-hover-popup__content";
+      var bodySource = definitionEl.querySelector(":scope > .md-hover-card-def__body");
+      if (bodySource) {
+        cloneChildren(bodySource, bodyEl);
+      } else {
+        cloneChildren(definitionEl, bodyEl);
+      }
+
+      var clonedColumns = bodyEl.querySelectorAll(".md-columns[data-columns-bound]");
+      for (var i = 0; i < clonedColumns.length; i += 1) {
+        clonedColumns[i].removeAttribute("data-columns-bound");
+      }
+
+      popupInnerEl.appendChild(bodyEl);
+
+      initColumns(popupInnerEl);
+      bindXrefs(popupInnerEl);
+    }
+
+    function positionPopup() {
+      if (!activeTermEl || !activeTermEl.isConnected) {
+        hideNow();
+        return;
+      }
+
+      var termRect = activeTermEl.getBoundingClientRect();
+      var popupRect = popupEl.getBoundingClientRect();
+      var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+      var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      var spaceAbove = termRect.top;
+      var spaceBelow = viewportHeight - termRect.bottom;
+      var showAbove = spaceAbove > spaceBelow;
+      var top = showAbove
+        ? termRect.top - popupRect.height - HOVER_GAP
+        : termRect.bottom + HOVER_GAP;
+
+      if (showAbove && top < HOVER_VIEWPORT_PADDING && spaceBelow > spaceAbove) {
+        showAbove = false;
+        top = termRect.bottom + HOVER_GAP;
+      }
+      if (!showAbove && top + popupRect.height > viewportHeight - HOVER_VIEWPORT_PADDING && spaceAbove > spaceBelow) {
+        showAbove = true;
+        top = termRect.top - popupRect.height - HOVER_GAP;
+      }
+
+      var left = termRect.left + termRect.width / 2 - popupRect.width / 2;
+      var maxLeft = Math.max(HOVER_VIEWPORT_PADDING, viewportWidth - popupRect.width - HOVER_VIEWPORT_PADDING);
+      var maxTop = Math.max(HOVER_VIEWPORT_PADDING, viewportHeight - popupRect.height - HOVER_VIEWPORT_PADDING);
+      left = clamp(left, HOVER_VIEWPORT_PADDING, maxLeft);
+      top = clamp(top, HOVER_VIEWPORT_PADDING, maxTop);
+
+      var arrowLeft = clamp(
+        termRect.left + termRect.width / 2 - left,
+        18,
+        Math.max(18, popupRect.width - 18)
+      );
+
+      popupEl.style.left = String(left) + "px";
+      popupEl.style.top = String(top) + "px";
+      popupEl.style.setProperty("--md-hover-arrow-left", String(arrowLeft) + "px");
+      popupEl.classList.toggle("is-above", showAbove);
+      popupEl.classList.toggle("is-below", !showAbove);
+    }
+
+    function openForTerm(termEl) {
+      if (!termEl) {
+        return;
+      }
+
+      var hoverId = String(termEl.getAttribute("data-hover-id") || "").trim();
+      if (!hoverId) {
+        return;
+      }
+
+      var definitionEl = resolveDefinition(hoverId);
+      if (!definitionEl) {
+        return;
+      }
+
+      clearHideTimer();
+
+      if (activeTermEl && activeTermEl !== termEl) {
+        setTermActive(activeTermEl, false);
+      }
+
+      activeTermEl = termEl;
+      setTermActive(activeTermEl, true);
+
+      applyPopupSize(definitionEl);
+      setPopupContent(definitionEl);
+
+      popupEl.classList.remove("is-open");
+      popupEl.style.visibility = "hidden";
+      positionPopup();
+      popupEl.style.visibility = "";
+      popupEl.setAttribute("aria-hidden", "false");
+
+      window.requestAnimationFrame(function () {
+        popupEl.classList.add("is-open");
+      });
+    }
+
+    function bindTerm(termEl) {
+      if (!termEl || termEl.dataset.hoverBound === "1") {
+        return;
+      }
+
+      termEl.dataset.hoverBound = "1";
+      if (!termEl.hasAttribute("tabindex")) {
+        termEl.setAttribute("tabindex", "0");
+      }
+
+      termEl.addEventListener("mouseenter", function () {
+        openForTerm(termEl);
+      });
+
+      termEl.addEventListener("mouseleave", function (event) {
+        if (event.relatedTarget && popupEl.contains(event.relatedTarget)) {
+          clearHideTimer();
+          return;
+        }
+        scheduleHide(HOVER_HIDE_DELAY);
+      });
+
+      termEl.addEventListener("focus", function () {
+        openForTerm(termEl);
+      });
+
+      termEl.addEventListener("blur", function (event) {
+        if (event.relatedTarget && popupEl.contains(event.relatedTarget)) {
+          clearHideTimer();
+          return;
+        }
+        scheduleHide(HOVER_HIDE_DELAY);
+      });
+
+      termEl.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          hideNow();
+          termEl.blur();
+          return;
+        }
+        if ((event.key === "Enter" || event.key === " ") && !popupEl.classList.contains("is-open")) {
+          event.preventDefault();
+          openForTerm(termEl);
+        }
+      });
+    }
+
+    function registerDefinitions(rootEl) {
+      var defs = getNodesInScope(rootEl || document, ".md-hover-card-def[data-hover-id]");
+      for (var i = 0; i < defs.length; i += 1) {
+        var defEl = defs[i];
+        var hoverId = String(defEl.getAttribute("data-hover-id") || "").trim();
+        if (!hoverId) {
+          continue;
+        }
+        definitions[hoverId] = defEl;
+      }
+    }
+
+    function registerTerms(rootEl) {
+      var terms = getNodesInScope(rootEl || document, ".md-hover-term[data-hover-id]");
+      for (var i = 0; i < terms.length; i += 1) {
+        bindTerm(terms[i]);
+      }
+    }
+
+    function register(rootEl) {
+      registerDefinitions(rootEl || document);
+      registerTerms(rootEl || document);
+    }
+
+    popupEl.addEventListener("mouseenter", clearHideTimer);
+    popupEl.addEventListener("mouseleave", function () {
+      if (shouldHoldOpen()) {
+        return;
+      }
+      scheduleHide(HOVER_HIDE_DELAY);
+    });
+    popupEl.addEventListener("mousedown", function () {
+      holdByPointer = true;
+      clearHideTimer();
+    });
+    popupEl.addEventListener("mouseup", function () {
+      holdByPointer = false;
+      if (!popupEl.matches(":hover") && (!activeTermEl || !activeTermEl.matches(":hover"))) {
+        scheduleHide(90);
+      }
+    });
+    popupEl.addEventListener("focusin", clearHideTimer);
+    popupEl.addEventListener("focusout", function (event) {
+      if (event.relatedTarget && popupEl.contains(event.relatedTarget)) {
+        return;
+      }
+      if (event.relatedTarget && activeTermEl && activeTermEl.contains(event.relatedTarget)) {
+        return;
+      }
+      scheduleHide(HOVER_HIDE_DELAY);
+    });
+
+    document.addEventListener("pointerdown", function (event) {
+      if (!popupEl.classList.contains("is-open")) {
+        return;
+      }
+      if (popupEl.contains(event.target)) {
+        clearHideTimer();
+        return;
+      }
+      if (activeTermEl && activeTermEl.contains(event.target)) {
+        return;
+      }
+      hideNow();
+    });
+
+    window.addEventListener("mouseup", function () {
+      if (!holdByPointer) {
+        return;
+      }
+      holdByPointer = false;
+      if (popupEl.classList.contains("is-open") && !popupEl.matches(":hover") && (!activeTermEl || !activeTermEl.matches(":hover"))) {
+        scheduleHide(90);
+      }
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        hideNow();
+      }
+    });
+
+    window.addEventListener("scroll", function () {
+      if (!popupEl.classList.contains("is-open")) {
+        return;
+      }
+      positionPopup();
+    }, { passive: true });
+
+    window.addEventListener("resize", function () {
+      if (!popupEl.classList.contains("is-open")) {
+        return;
+      }
+      positionPopup();
+    });
+
+    return {
+      register: register
+    };
+  }
+
+  function initHoverCards(rootEl) {
+    if (!hoverController) {
+      hoverController = createHoverController();
+    }
+    hoverController.register(rootEl || document);
   }
 
   function handleResize() {
+    pruneResizeItems();
     for (var i = 0; i < resizeItems.length; i += 1) {
       applyColumnTemplate(resizeItems[i]);
     }
   }
 
   function init() {
-    initColumns();
-    bindXrefs();
+    initColumns(document);
+    bindXrefs(document);
+    initHoverCards(document);
     window.addEventListener("resize", handleResize);
   }
 
